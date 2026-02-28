@@ -53,8 +53,8 @@ multi_tenant_rag/
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/your-username/TenaxRAG.git
-cd TenaxRAG
+git clone https://github.com/dksfaldu/fastapi-multitenant-rag.git
+cd fastapi-multitenant-rag
 pip install -r requirements.txt
 ```
 
