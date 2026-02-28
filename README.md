@@ -124,8 +124,4 @@ Access the built-in system administration dashboard directly by navigating to:
 
 Log in using the `ADMIN_USERNAME` and `ADMIN_PASSWORD` defined in your `.env` to visually monitor system-wide activity, inspect document metrics across indices, and traverse timelines of user queries across unique project partitions.
 
----
 
-## 🛡️ License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
