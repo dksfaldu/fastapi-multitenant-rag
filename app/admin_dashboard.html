@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Tenant RAG Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --surface-hover: #334155;
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            width: 280px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .brand {
+            padding: 24px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+            border-radius: 8px;
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .project-list-header {
+            padding: 24px 24px 12px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        #projects-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+        }
+
+        .project-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .project-item:hover {
+            background: var(--surface-hover);
+        }
+
+        .project-item.active {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .project-item .doc-badge {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Main Content Styling */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: radial-gradient(circle at top right, rgba(30, 41, 59, 0.5), transparent);
+        }
+
+        header {
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-overview {
+            display: flex;
+            gap: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-width: 140px;
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 32px;
+            border-radius: 16px;
+            width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        #dashboard-body {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Logs Table */
+        .logs-container {
+            background: var(--surface-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .logs-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px 24px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .action-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-upload {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .badge-chat {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .badge-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .badge-default {
+            background: rgba(148, 163, 184, 0.2);
+            color: #cbd5e1;
+        }
+
+        .log-details {
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-secondary);
+        }
+
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent-color);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--surface-hover);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <div class="brand">
+            <div class="brand-icon"></div>
+            RAG Admin
+        </div>
+
+        <div style="padding: 16px;">
+            <button class="btn btn-primary" style="font-size: 0.85rem; padding: 8px;" onclick="openUserModal()">+ Create
+                User</button>
+        </div>
+
+        <div class="project-list-header">Active Projects</div>
+        <div id="projects-container">
+            <!-- Project items will be injected here -->
+        </div>
+    </div>
+
+    <div id="main-content">
+        <header>
+            <h2 id="header-title">Dashboard Overview</h2>
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-projects">0</div>
+                    <div class="stat-label">Total Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-docs">0</div>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+            </div>
+        </header>
+
+        <div id="dashboard-body">
+            <div class="empty-state" id="empty-state">
+                <div class="brand-icon" style="width: 64px; height: 64px; margin-bottom: 24px; opacity: 0.5;"></div>
+                <h3>Select a project to view metrics & logs</h3>
+                <p style="margin-top: 8px; max-width: 300px;">Monitor activity, document counts, and specific API
+                    interactions per tenant.</p>
+            </div>
+
+            <div class="logs-container" id="logs-container" style="display: none;">
+                <div class="logs-header">
+                    <h3 id="logs-title">API Activity Logs</h3>
+                    <button class="action-badge badge-default" style="cursor: pointer; border: none; outline: none;"
+                        onclick="refreshLogs()">Refresh</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 180px;">Timestamp</th>
+                                <th style="width: 120px;">Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body">
+                            <!-- Logs will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Creation Modal -->
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 24px;">Create New User</h3>
+            <form onsubmit="createUser(event)">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="new-username" class="form-control" placeholder="Enter username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="new-password" class="form-control" placeholder="Enter password" required>
+                </div>
+                <div id="user-msg" style="font-size: 0.85rem; margin-bottom: 16px; display: none;"></div>
+                <button type="submit" class="btn btn-primary">Create User</button>
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentProjectStats = [];
+        let selectedProjectId = null;
+
+        // Fetch overall stats
+        async function fetchStats() {
+            try {
+                const response = await fetch('/admin/api/stats');
+                if (response.status === 401) {
+                    window.location.reload(); // Trigger browser basic auth prompt if not cached
+                    return;
+                }
+                currentProjectStats = await response.json();
+                renderSidebar();
+                updateTopStats();
+            } catch (err) {
+                console.error("Failed to fetch stats", err);
+            }
+        }
+
+        // Render projects in sidebar
+        function renderSidebar() {
+            const container = document.getElementById('projects-container');
+            container.innerHTML = '';
+
+            if (currentProjectStats.length === 0) {
+                container.innerHTML = '<div style="padding: 12px; color: var(--text-secondary); text-align: center; font-size: 0.875rem;">No active projects</div>';
+                return;
+            }
+
+            currentProjectStats.forEach(stat => {
+                const el = document.createElement('div');
+                el.className = 'project-item' + (stat.project_id === selectedProjectId ? ' active' : '');
+                el.onclick = () => selectProject(stat.project_id);
+
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span>${stat.project_id}</span>
+                        <span style="font-size: 0.7rem; color: var(--text-secondary);">By: ${stat.creator || 'Unknown'}</span>
+                    </div>
+                    <span class="doc-badge">${stat.document_count}</span>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function updateTopStats() {
+            document.getElementById('total-projects').textContent = currentProjectStats.length;
+            const totalDocs = currentProjectStats.reduce((acc, curr) => acc + curr.document_count, 0);
+            document.getElementById('total-docs').textContent = totalDocs;
+        }
+
+        async function selectProject(projectId) {
+            selectedProjectId = projectId;
+
+            // UI updates
+            renderSidebar();
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('logs-container').style.display = 'block';
+            document.getElementById('header-title').textContent = `Project: ${projectId}`;
+            document.getElementById('logs-title').textContent = `Activity Logs - ${projectId}`;
+
+            await fetchLogs(projectId);
+        }
+
+        async function refreshLogs() {
+            if (selectedProjectId) {
+                await fetchLogs(selectedProjectId);
+            } else {
+                fetchStats();
+            }
+        }
+
+        function getActionBadgeClass(action) {
+            action = action.toUpperCase();
+            if (action === 'UPLOAD') return 'badge-upload';
+            if (action === 'CHAT') return 'badge-chat';
+            if (action === 'DELETE') return 'badge-delete';
+            return 'badge-default';
+        }
+
+        function formatDate(isoString) {
+            const d = new Date(isoString);
+            return d.toLocaleString();
+        }
+
+        async function fetchLogs(projectId) {
+            const tBody = document.getElementById('logs-body');
+            tBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px;"><div class="loader" style="margin: 0 auto;"></div></td></tr>`;
+
+            try {
+                const response = await fetch(`/admin/api/logs/${projectId}`);
+                const data = await response.json();
+
+                if (!data.logs || data.logs.length === 0) {
+                    tBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No logs found for this project.</td></tr>`;
+                    return;
+                }
+
+                let rows = '';
+                data.logs.forEach(log => {
+                    rows += `
+                        <tr>
+                            <td style="color: var(--text-secondary);">${formatDate(log.timestamp)}</td>
+                            <td><span class="action-badge ${getActionBadgeClass(log.action)}">${log.action}</span></td>
+                            <td class="log-details" title="${log.details.replace(/"/g, '&quot;')}">${log.details}</td>
+                        </tr>
+                    `;
+                });
+                tBody.innerHTML = rows;
+            } catch (err) {
+                console.error("Failed to fetch logs", err);
+                tBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--danger-color);">Error loading logs.</td></tr>`;
+            }
+        }
+
+        // User Creation API Functions
+        function openUserModal() {
+            document.getElementById('user-modal').style.display = 'flex';
+            document.getElementById('user-msg').style.display = 'none';
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-modal').style.display = 'none';
+        }
+
+        async function createUser(event) {
+            event.preventDefault();
+            const u = document.getElementById('new-username').value.trim();
+            const p = document.getElementById('new-password').value.trim();
+            const msgBox = document.getElementById('user-msg');
+
+            if (!u || !p) return;
+
+            try {
+                const response = await fetch('/admin/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+
+                const data = await response.json();
+
+                msgBox.style.display = 'block';
+                if (response.ok) {
+                    msgBox.style.color = 'var(--success-color)';
+                    msgBox.textContent = data.message;
+                    setTimeout(closeUserModal, 1500);
+                } else {
+                    msgBox.style.color = 'var(--danger-color)';
+                    msgBox.textContent = data.detail || 'Failed to create user.';
+                }
+            } catch (e) {
+                msgBox.style.display = 'block';
+                msgBox.style.color = 'var(--danger-color)';
+                msgBox.textContent = 'Network error communicating with API.';
+            }
+        }
+
+        // Initialize dashboard
+        fetchStats();
+        // Poll for stats updates every 15 seconds
+        setInterval(fetchStats, 15000);
+    </script>
+</body>
+
+</html>
